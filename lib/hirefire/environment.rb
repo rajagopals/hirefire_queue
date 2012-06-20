@@ -37,9 +37,9 @@ module HireFire
         base.send :extend, HireFire::Environment::DelayedJob::ClassMethods
 
         base.class_eval do
-          after_create  'self.class.hirefire_hire'
-          after_destroy 'self.class.environment.fire'
-          after_update  'self.class.environment.fire',
+          after_create  'self.class.hirefire_hire "#{queue}"'
+          after_destroy 'self.class.environment.fire "#{queue}"'
+          after_update  'self.class.environment.fire "#{queue}"',
             :unless => Proc.new { |job| job.failed_at.nil? }
         end
       end
@@ -68,7 +68,7 @@ module HireFire
           if environment = HireFire.configuration.environment
             environment.to_s.camelize
           else
-            ENV.include?('HEROKU_UPID') ? 'Heroku' : 'Noop'
+            ::Rails.env.production? || ::Rails.env.dev? ? 'Heroku' : 'Local'
           end
         ).new
       end
@@ -93,11 +93,10 @@ module HireFire
         # invoke the 'self.class.environment.hire' method to make sure this is the case.
         #
         # @return [nil]
-        def hirefire_hire
+        def hirefire_hire(type)
           delayed_job = ::Delayed::Job.new
-          if delayed_job.working == 0 \
-          or delayed_job.jobs    == 1
-            environment.hire
+          if (delayed_job.working(type) == 0 or delayed_job.jobs(type) == 1) and delayed_job.jobs_of_higher_order(type) == 0
+            environment.hire(type)
           end
         end
       end

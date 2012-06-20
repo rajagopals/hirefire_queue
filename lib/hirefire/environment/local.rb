@@ -18,14 +18,14 @@ module HireFire
       # @overload workers(amount = nil)
       #   @param [nil] amount
       #   @return [Fixnum] will request the amount of currently running workers from the local machine
-      def workers(amount = nil)
+      def workers(type, amount = nil)
 
         ##
         # Returns the amount of Delayed Job workers that are currently
         # running on the local machine if amount is nil
         if amount.nil?
           return Rush::Box.new.processes.filter(
-            :cmdline => /rake jobs:work WORKER=HIREFIRE/
+            :cmdline => /QUEUE=#{type} rake jobs:work WORKER=HIREFIRE/
           ).size
         end
 
@@ -42,7 +42,7 @@ module HireFire
           ##
           # Gather process ids from all HireFire workers
           pids = Rush::Box.new.processes.filter(
-            :cmdline => /rake jobs:work WORKER=HIREFIRE/
+            :cmdline => /QUEUE=#{type} rake jobs:work WORKER=HIREFIRE/
           ).map(&:pid)
 
           ##
@@ -69,11 +69,15 @@ module HireFire
         # If the amount of workers required is greater than
         # the amount of workers already working, then hire the
         # additional amount of workers required
-        workers_count = workers
+        workers_count = workers(type)
+        puts "workers_count " + workers_count.to_s
+        puts "desired " + amount.to_s
+        
         if amount > workers_count
           (amount - workers_count).times do
-            Rush::Box.new[Rails.root].bash(
-              'rake jobs:work WORKER=HIREFIRE', :background => true
+            puts "creating new task to process jobs..."
+            Rush::Box.new[Rails.root].bash(              
+              "QUEUE=#{type} rake jobs:work WORKER=HIREFIRE", :background => true
             )
           end
         end

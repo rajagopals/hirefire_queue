@@ -59,82 +59,83 @@ module HireFire
       #   # which will set the workers back to 0 and shuts down all the workers simultaneously.
       #
       # @return [nil]
-      def hire
-        jobs_count    = jobs
-        workers_count = workers || return
+      def hire(type)
+        jobs_count    = jobs(type)
+        current_workers_count = workers(type) || return
 
-        ##
-        # Use "Standard Notation"
-        if not ratio.first[:when].respond_to? :call
-
-          ##
-          # Since the "Standard Notation" is defined in the in an ascending order
-          # in the array of hashes, we need to reverse this order in order to properly
-          # loop through and break out of the array at the correctly matched ratio
-          ratio.reverse!
-
-          ##
-          # Iterates through all the defined job/worker ratio's
-          # until it finds a match. Then it hires (if necessary) the appropriate
-          # amount of workers and breaks out of the loop
-          ratio.each do |ratio|
-
-            ##
-            # Standard notation
-            # This is the code for the default notation
-            #
-            # @example
-            #   { :jobs => 35,  :workers => 3 }
-            #
-            if jobs_count >= ratio[:jobs] and max_workers >= ratio[:workers]
-              if workers_count < ratio[:workers]
-                log_and_hire(ratio[:workers])
-              end
-
-              return
-            end
-          end
-
-          ##
-          # If no match is found in the above job/worker ratio loop, then we'll
-          # perform one last operation to see whether the the job count is greater
-          # than the highest job/worker ratio, and if this is the case then we also
-          # check to see whether the maximum amount of allowed workers is greater
-          # than the amount that are currently running, if this is the case, we are
-          # allowed to hire the max amount of workers.
-          if jobs_count >= ratio.first[:jobs] and max_workers > workers_count
-            log_and_hire(max_workers)
-            return
-          end
-        end
+        
+        # ##
+        # # Use "Standard Notation"
+        # if not ratio.first[:when].respond_to? :call
+        # 
+        #   ##
+        #   # Since the "Standard Notation" is defined in the in an ascending order
+        #   # in the array of hashes, we need to reverse this order in order to properly
+        #   # loop through and break out of the array at the correctly matched ratio
+        #   ratio.reverse!
+        # 
+        #   ##
+        #   # Iterates through all the defined job/worker ratio's
+        #   # until it finds a match. Then it hires (if necessary) the appropriate
+        #   # amount of workers and breaks out of the loop
+        #   ratio.each do |ratio|
+        # 
+        #     ##
+        #     # Standard notation
+        #     # This is the code for the default notation
+        #     #
+        #     # @example
+        #     #   { :jobs => 35,  :workers => 3 }
+        #     #
+        #     if jobs_count >= ratio[:jobs] and max_workers >= ratio[:workers]
+        #       if workers_count < ratio[:workers]
+        #         log_and_hire(ratio[:workers])
+        #       end
+        # 
+        #       return
+        #     end
+        #   end
+        # 
+        #   ##
+        #   # If no match is found in the above job/worker ratio loop, then we'll
+        #   # perform one last operation to see whether the the job count is greater
+        #   # than the highest job/worker ratio, and if this is the case then we also
+        #   # check to see whether the maximum amount of allowed workers is greater
+        #   # than the amount that are currently running, if this is the case, we are
+        #   # allowed to hire the max amount of workers.
+        #   if jobs_count >= ratio.first[:jobs] and max_workers > workers_count
+        #     log_and_hire(max_workers)
+        #     return
+        #   end
+        # end
 
         ##
         # Use "Functional (Lambda) Notation"
-        if ratio.first[:when].respond_to? :call
-
-          ##
-          # Iterates through all the defined job/worker ratio's
-          # until it finds a match. Then it hires (if necessary) the appropriate
-          # amount of workers and breaks out of the loop
-          ratio.each do |ratio|
-
-            ##
-            # Functional (Lambda) Notation
-            # This is the code for the Lambda notation, more verbose,
-            # but more humanly understandable
-            #
-            # @example
-            #   { :when => lambda {|jobs| jobs < 60 }, :workers => 3 }
-            #
-            if ratio[:when].call(jobs_count) and max_workers >= ratio[:workers]
-              if workers_count < ratio[:workers]
-                log_and_hire(ratio[:workers])
-              end
-
-              break
-            end
-          end
-        end
+        # if ratio.first[:when].respond_to? :call
+        # 
+        #   ##
+        #   # Iterates through all the defined job/worker ratio's
+        #   # until it finds a match. Then it hires (if necessary) the appropriate
+        #   # amount of workers and breaks out of the loop
+        #   ratio.each do |ratio|
+        # 
+        #     ##
+        #     # Functional (Lambda) Notation
+        #     # This is the code for the Lambda notation, more verbose,
+        #     # but more humanly understandable
+        #     #
+        #     # @example
+        #     #   { :when => lambda {|jobs| jobs < 60 }, :workers => 3 }
+        #     #
+        #     if ratio[:when].call(jobs_count) and max_workers >= ratio[:workers]
+        #       if workers_count < ratio[:workers]
+        #         log_and_hire(ratio[:workers])
+        #       end
+        # 
+        #       break
+        #     end
+        #   end
+        # end
 
         ##
         # Applies only to the Functional (Lambda) Notation
@@ -149,11 +150,31 @@ module HireFire
         # If all the the above statements are true, HireFire will hire the maximum
         # amount of workers that were specified in the configuration
         #
-        if ratio.last[:when].respond_to? :call \
-        and ratio.last[:when].call(jobs_count) === false \
-        and max_workers != workers_count
-          log_and_hire(max_workers)
+        # if ratio.last[:when].respond_to? :call \
+        # and ratio.last[:when].call(jobs_count) === false \
+        # and max_workers != workers_count
+        #   log_and_hire(max_workers)
+        # end
+        type = type.to_sym
+        
+        count = worker_count[type]
+        
+        if worker_count[type] == :scale
+          if jobs_count < max_workers
+            count = jobs_count
+          else
+            count = max_workers
+          end
         end
+        
+        #puts "Desired Worker Count is " + count.to_s
+        #puts "Current Worker Count is " + current_workers_count.to_s
+        #puts "Job count is " + jobs_count.to_s
+        
+        if jobs_count > 0 && current_workers_count < count
+          log_and_hire(type, count)
+        end
+        
       end
 
       ##
@@ -164,26 +185,40 @@ module HireFire
       # then fire all the workers or set to the minimum_workers
       #
       # @return [Boolean] if the workers have been fired
-      def fire
-        if jobs == 0 and workers > min_workers
-          Logger.message("All queued jobs have been processed. " + (min_workers > 0 ? "Setting workers to #{min_workers}." : "Firing all workers."))
-          workers(min_workers)
+      def fire(type)
+        if jobs(type) == 0 and workers(type) > min_workers
+          Logger.message("All queued jobs in #{type} have been processed. " + (min_workers > 0 ? "Setting workers to #{min_workers}." : "Firing all workers."))
+          workers(type, min_workers)
+          
+          lower_order_jobs = job_types_of_lower_order(type)
 
+          if lower_order_jobs.present? and jobs_of_current_order(type) == 0
+            lower_order_jobs.each do |job|
+              if workers(job.queue) == 0
+                hire(job.queue)
+                HireFire::Logger.message "Starting process of type #{job.queue}"
+              end
+            end
+          end
+          
           return true
         end
-
         return false
       end
+      
 
+      def worker_priority
+        HireFire.configuration.worker_priority
+      end      
       private
 
       ##
       # Helper method for hire that logs the hiring of more workers, then hires those workers.
       #
       # @return [nil]
-      def log_and_hire(amount)
-        Logger.message("Hiring more workers so we have #{ amount } in total.")
-        workers(amount)
+      def log_and_hire(type, amount)
+        Logger.message("Hiring more #{type} workers so we have #{amount} in total.")
+        workers(type, amount)
       end
 
       ##
@@ -213,6 +248,10 @@ module HireFire
         HireFire.configuration.job_worker_ratio
       end
 
+      def worker_count
+        HireFire.configuration.worker_count
+      end
+    
     end
   end
 end

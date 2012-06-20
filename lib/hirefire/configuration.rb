@@ -31,6 +31,12 @@ module HireFire
     # @return [Symbol, nil] default: nil
     attr_accessor :environment
 
+    # The number of workers for each kind of task
+    attr_accessor :worker_count
+    
+    # The order of execution for different tasks
+    attr_accessor :worker_priority
+        
     ##
     # Instantiates a new HireFire::Configuration object
     # with the default configuration. These default configurations

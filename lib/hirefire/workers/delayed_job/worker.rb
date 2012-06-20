@@ -33,9 +33,11 @@ module Delayed
       trap('INT')  { HireFire::Logger.message 'Exiting...'; $exit = true }
 
       queued = Delayed::Job.new
+      type = self.queues[0].to_s                    
+      puts "Performing queue handled by worker: " +  type
 
       loop do
-        ::Delayed::Job.environment.hire
+        ::Delayed::Job.environment.hire(type)
         result = nil
 
         realtime = Benchmark.realtime do
@@ -58,8 +60,8 @@ module Delayed
         # will return 0. This means that there aren't any more jobs to process for any of the workers.
         # If this is the case it'll command the current environment to fire all the hired workers
         # and then immediately break out of this infinite loop.
-        if queued.jobs == 0
-          break if Delayed::Job.environment.fire
+        if queued.jobs(type) == 0
+          break if Delayed::Job.environment.fire(type)                      
         end
 
         break if $exit
