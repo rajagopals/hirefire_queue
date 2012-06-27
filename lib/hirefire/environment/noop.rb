@@ -6,12 +6,12 @@ module HireFire
 
       ##
       # Will invoke the #hire method, but won't actually do anything
-      def hire
+      def hire(type)
       end
 
       ##
       # Will invoke the #fire method, but won't actually do anything
-      def fire
+      def fire(type)
       end
 
     end
