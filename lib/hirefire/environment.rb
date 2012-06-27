@@ -68,7 +68,7 @@ module HireFire
           if environment = HireFire.configuration.environment
             environment.to_s.camelize
           else
-            ::Rails.env.production? || ::Rails.env.dev? ? 'Heroku' : 'Local'
+            ::Rails.env.production? || ::Rails.env.dev? ? 'Heroku' : 'Noop'
           end
         ).new
       end
