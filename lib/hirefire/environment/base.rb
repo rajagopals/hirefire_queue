@@ -190,6 +190,7 @@ module HireFire
           Logger.message("All queued jobs in #{type} have been processed. " + (min_workers > 0 ? "Setting workers to #{min_workers}." : "Firing all workers."))
           workers(type, min_workers)
           
+          # Spawn jobs to handle workers in the next lower priority level that has atleast one job in the queue
           lower_order_jobs = job_types_of_lower_order(type)
 
           if lower_order_jobs.present? and jobs_of_current_order(type) == 0
@@ -206,10 +207,6 @@ module HireFire
         return false
       end
       
-
-      def worker_priority
-        HireFire.configuration.worker_priority
-      end      
       private
 
       ##
@@ -248,8 +245,22 @@ module HireFire
         HireFire.configuration.job_worker_ratio
       end
 
+      ##
+      # Wrapper method for HireFire.configuration
+      # Returns the worker count for each worker type
+      #
+      # @return [Hash] keys are the worker types and values are the counts
       def worker_count
         HireFire.configuration.worker_count
+      end
+      
+      ##
+      # Wrapper method for HireFire.configuration
+      # Returns the priority of each worker type
+      #
+      # @return [Hash] keys are the worker types and values are the priorities
+      def worker_priority
+        HireFire.configuration.worker_priority
       end
     
     end

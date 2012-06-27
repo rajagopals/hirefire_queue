@@ -34,7 +34,7 @@ module HireFire
     # The number of workers for each kind of task
     attr_accessor :worker_count
     
-    # The order of execution for different tasks
+    # The priority of each worker type
     attr_accessor :worker_priority
         
     ##

@@ -92,6 +92,8 @@ module HireFire
         # then it's very likely there aren't any workers running and we should
         # invoke the 'self.class.environment.hire' method to make sure this is the case.
         #
+        # Also check if there are any higher order jobs currently running. If so, don't 
+        # spawn a worker. Process will be fired when the higher order job completes.
         # @return [nil]
         def hirefire_hire(type)
           delayed_job = ::Delayed::Job.new
